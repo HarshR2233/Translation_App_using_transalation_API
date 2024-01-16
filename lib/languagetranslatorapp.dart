@@ -130,18 +130,19 @@ class _LanguageTranslatorAppState extends State<LanguageTranslatorApp> {
                       controller: _inputController,
                       decoration: InputDecoration(
                         labelText: 'Enter Text',
-                        // suffixIcon: IconButton(
-                        //   icon: Icon(Icons.mic),
-                        //   onPressed: () => _startListening(_inputController),
-                        // ),
+                        suffixIcon: IconButton(
+                          icon: Icon(Icons.volume_up),
+                          onPressed: () => _speakText(_inputController.text),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         Text('Source Language: $_sourceLanguage'),
                         Flexible(
+                          flex: 1, // Set a flex value for the first Flexible
                           child: DropdownButton<String>(
                             value: _selectedSourceLanguage,
                             onChanged: (String? newValue) {
@@ -177,24 +178,25 @@ class _LanguageTranslatorAppState extends State<LanguageTranslatorApp> {
                       controller: _outputController,
                       decoration: InputDecoration(
                         labelText: 'Translated Text',
-                        // suffixIcon: IconButton(
-                        //   icon: Icon(Icons.mic),
-                        //   onPressed: () => _startListening(_outputController),
-                        // ),
+                        suffixIcon: IconButton(
+                          icon: Icon(Icons.volume_up),
+                          onPressed: () => _speakText(_outputController.text),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        Text('Target Language: $_selectedTargetLanguage'),
+                        Text('Source Language: $_sourceLanguage'),
                         Flexible(
+                          flex: 1, // Set a flex value for the first Flexible
                           child: DropdownButton<String>(
-                            value: _selectedTargetLanguage,
+                            value: _selectedSourceLanguage,
                             onChanged: (String? newValue) {
-                              print('Target Language Changed: $newValue');
+                              print('Source Language Changed: $newValue');
                               setState(() {
-                                _selectedTargetLanguage = newValue!;
+                                _selectedSourceLanguage = newValue!;
                               });
                             },
                             items: data
@@ -219,20 +221,24 @@ class _LanguageTranslatorAppState extends State<LanguageTranslatorApp> {
               },
               child: Text('Translate'),
             ),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () => _speakText(_inputController.text),
-                  child: Icon(Icons.volume_up),
-                ),
-                ElevatedButton(
-                  onPressed: () => _speakText(_outputController.text),
-                  child: Icon(Icons.volume_up),
-                ),
-              ],
-            ),
+            // SizedBox(height: 16),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            //   children: [
+            //     ElevatedButton(
+            //       onPressed: () => _speakText(_inputController.text),
+            //       child: Icon(Icons.volume_up),
+            //     ),
+            //     ElevatedButton(
+            //       onPressed: () {
+            //         if (_outputController.text.isNotEmpty) {
+            //           _speakText(_outputController.text);
+            //         }
+            //       },
+            //       child: Icon(Icons.volume_up),
+            //     ),
+            //   ],
+            // ),
           ],
         ),
       ),
@@ -240,6 +246,7 @@ class _LanguageTranslatorAppState extends State<LanguageTranslatorApp> {
   }
 
   Future<void> _speakText(String text) async {
+    print('Speaking text: $text');
     await flutterTts.speak(text);
   }
 
@@ -250,6 +257,7 @@ class _LanguageTranslatorAppState extends State<LanguageTranslatorApp> {
 
 void main() {
   runApp(MaterialApp(
+    debugShowCheckedModeBanner: false,
     home: LanguageTranslatorApp(),
   ));
 }
