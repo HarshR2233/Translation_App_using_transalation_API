@@ -20,6 +20,9 @@ class _LanguageTranslatorAppState extends State<LanguageTranslatorApp> {
   String _outputText = '';
   String _sourceLanguage = '';
 
+  // History data
+  List<String> searchHistory = [];
+
   @override
   void initState() {
     super.initState();
@@ -96,6 +99,9 @@ class _LanguageTranslatorAppState extends State<LanguageTranslatorApp> {
             _outputController.text =
                 translatedText; // Set translated text to the output field
           });
+
+          // Save the search history
+          searchHistory.add(_inputController.text);
         } else {
           print('Missing "trans" field in the response');
         }
@@ -112,135 +118,147 @@ class _LanguageTranslatorAppState extends State<LanguageTranslatorApp> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.blue,
         title: Text('Language Translator'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Card(
-              elevation: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      controller: _inputController,
-                      decoration: InputDecoration(
-                        labelText: 'Enter Text',
-                        suffixIcon: IconButton(
-                          icon: Icon(Icons.volume_up),
-                          onPressed: () => _speakText(_inputController.text),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      body: Container(
+        color: Colors.white,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Card(
+                  elevation: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('Source Language: $_sourceLanguage'),
-                        Flexible(
-                          flex: 1, // Set a flex value for the first Flexible
-                          child: DropdownButton<String>(
-                            value: _selectedSourceLanguage,
-                            onChanged: (String? newValue) {
-                              print('Source Language Changed: $newValue');
-                              setState(() {
-                                _selectedSourceLanguage = newValue!;
-                              });
-                            },
-                            items: data
-                                .map<DropdownMenuItem<String>>((dynamic value) {
-                              return DropdownMenuItem<String>(
-                                value: value['code'].toString(),
-                                child: Text(value['language'].toString()),
-                              );
-                            }).toList(),
+                        TextField(
+                          controller: _inputController,
+                          decoration: InputDecoration(
+                            labelText: 'Enter Text',
+                            suffixIcon: IconButton(
+                              icon: Icon(Icons.volume_up),
+                              onPressed: () =>
+                                  _speakText(_inputController.text),
+                            ),
                           ),
+                        ),
+                        SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('$_sourceLanguage'),
+                            Flexible(
+                              // flex: 1, // Set a flex value for the first Flexible
+                              child: DropdownButton<String>(
+                                value: _selectedSourceLanguage,
+                                onChanged: (String? newValue) {
+                                  print('$newValue');
+                                  setState(() {
+                                    _selectedSourceLanguage = newValue!;
+                                  });
+                                },
+                                items: data.map<DropdownMenuItem<String>>(
+                                    (dynamic value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value['code'].toString(),
+                                    child: Text(value['language'].toString()),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            SizedBox(height: 16),
-            Card(
-              elevation: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      controller: _outputController,
-                      decoration: InputDecoration(
-                        labelText: 'Translated Text',
-                        suffixIcon: IconButton(
-                          icon: Icon(Icons.volume_up),
-                          onPressed: () => _speakText(_outputController.text),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                SizedBox(height: 16),
+                Card(
+                  elevation: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('Source Language: $_sourceLanguage'),
-                        Flexible(
-                          flex: 1, // Set a flex value for the first Flexible
-                          child: DropdownButton<String>(
-                            value: _selectedSourceLanguage,
-                            onChanged: (String? newValue) {
-                              print('Source Language Changed: $newValue');
-                              setState(() {
-                                _selectedSourceLanguage = newValue!;
-                              });
-                            },
-                            items: data
-                                .map<DropdownMenuItem<String>>((dynamic value) {
-                              return DropdownMenuItem<String>(
-                                value: value['code'].toString(),
-                                child: Text(value['language'].toString()),
-                              );
-                            }).toList(),
+                        TextField(
+                          controller: _outputController,
+                          decoration: InputDecoration(
+                            labelText: 'Translated Text',
+                            suffixIcon: IconButton(
+                              icon: Icon(Icons.volume_up),
+                              onPressed: () =>
+                                  _speakText(_outputController.text),
+                            ),
                           ),
+                        ),
+                        SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('$_sourceLanguage'),
+                            Flexible(
+                              flex:
+                                  1, // Set a flex value for the first Flexible
+                              child: DropdownButton<String>(
+                                value: _selectedSourceLanguage,
+                                onChanged: (String? newValue) {
+                                  print('$newValue');
+                                  setState(() {
+                                    _selectedSourceLanguage = newValue!;
+                                  });
+                                },
+                                items: data.map<DropdownMenuItem<String>>(
+                                    (dynamic value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value['code'].toString(),
+                                    child: Text(value['language'].toString()),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+                SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () async {
+                    await _translateText();
+                  },
+                  child: Text('Translate'),
+                ),
+              ],
             ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () async {
-                await _translateText();
-              },
-              child: Text('Translate'),
-            ),
-            // SizedBox(height: 16),
-            // Row(
-            //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            //   children: [
-            //     ElevatedButton(
-            //       onPressed: () => _speakText(_inputController.text),
-            //       child: Icon(Icons.volume_up),
-            //     ),
-            //     ElevatedButton(
-            //       onPressed: () {
-            //         if (_outputController.text.isNotEmpty) {
-            //           _speakText(_outputController.text);
-            //         }
-            //       },
-            //       child: Icon(Icons.volume_up),
-            //     ),
-            //   ],
-            // ),
-          ],
+          ),
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'History',
+          ),
+        ],
+        onTap: (index) {
+          if (index == 0) {
+            // Navigate to home page
+            // You can add your home page logic here
+          } else if (index == 1) {
+            // Navigate to history page
+            _navigateToHistoryPage();
+          }
+        },
       ),
     );
   }
@@ -252,6 +270,38 @@ class _LanguageTranslatorAppState extends State<LanguageTranslatorApp> {
 
   void _startListening(TextEditingController inputController) {
     // Implement speech-to-text logic
+  }
+
+  void _navigateToHistoryPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HistoryPage(searchHistory),
+      ),
+    );
+  }
+}
+
+class HistoryPage extends StatelessWidget {
+  final List<String> searchHistory;
+
+  HistoryPage(this.searchHistory);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Search History'),
+      ),
+      body: ListView.builder(
+        itemCount: searchHistory.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(searchHistory[index]),
+          );
+        },
+      ),
+    );
   }
 }
 
