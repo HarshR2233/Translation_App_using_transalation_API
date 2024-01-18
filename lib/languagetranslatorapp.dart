@@ -63,10 +63,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       print('Request body: ${json.encode({
-            'from':
-                _selectedSourceLanguage, // Remove or set to an empty string for auto-detection
+            'from': _selectedSourceLanguage,
             'to': _selectedTargetLanguage,
-            'text': _inputController.text, // Use input text as source text
+            'text': _inputController.text,
           })}');
 
       final response = await http.post(
@@ -80,10 +79,9 @@ class _HomeScreenState extends State<HomeScreen> {
           'X-RapidAPI-Host': 'google-translate113.p.rapidapi.com',
         },
         body: {
-          'from':
-              _selectedSourceLanguage, // Remove or set to an empty string for auto-detection
+          'from': _selectedSourceLanguage,
           'to': _selectedTargetLanguage,
-          'text': _inputController.text, // Use input text as source text
+          'text': _inputController.text,
         },
       );
 
@@ -96,8 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final String translatedText = data['trans'];
           setState(() {
             _outputText = translatedText;
-            _outputController.text =
-                translatedText; // Set translated text to the output field
+            _outputController.text = translatedText;
           });
 
           // Save the translation to history
@@ -116,11 +113,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _addToTranslationHistory(String translation) async {
-    // Save the translation to history list
     translationHistory.add(
         '${_selectedSourceLanguage}${_selectedTargetLanguage}$translation');
-
-    // Save the updated history to persistent storage
     await _saveTranslationHistory();
   }
 
@@ -140,13 +134,54 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _clearTranslationHistory() async {
-    // Clear the translation history
     setState(() {
       translationHistory = [];
     });
-
-    // Save the updated empty history to persistent storage
     await _saveTranslationHistory();
+  }
+
+  Future<String> _detectLanguage(String text) async {
+    final response = await http.post(
+      Uri.parse(
+        'https://google-translate113.p.rapidapi.com/api/v1/translator/detect-language',
+      ),
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        'X-RapidAPI-Key': 'f33b805ccdmshec4c67929283b7cp1ac331jsn92a7ae8d08d1',
+        'X-RapidAPI-Host': 'google-translate113.p.rapidapi.com'
+      },
+      body: {
+        'q': text,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+
+      if (data.containsKey('language')) {
+        final String detectedLanguage = data['language'];
+        return detectedLanguage;
+      } else {
+        print('Missing "language" field in the response');
+      }
+    } else {
+      print('Failed to detect language. Status code: ${response.statusCode}');
+    }
+
+    return '';
+  }
+
+  Future<void> _autoDetectLanguage() async {
+    if (_inputController.text.isEmpty) {
+      final detectedLanguage = await _detectLanguage(_inputController.text);
+
+      if (detectedLanguage.isNotEmpty) {
+        setState(() {
+          _sourceLanguage = detectedLanguage;
+          _selectedSourceLanguage = detectedLanguage;
+        });
+      }
+    }
   }
 
   @override
@@ -156,125 +191,121 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text('Language Translator'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Card(
-              elevation: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _inputController,
-                      decoration: InputDecoration(
-                        labelText: 'Enter Text',
-                        suffixIcon: IconButton(
-                          icon: Icon(Icons.volume_up),
-                          onPressed: () => _speakText(_inputController.text),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('$_sourceLanguage'),
-                        Flexible(
-                          child: DropdownButton<String>(
-                            value: _selectedSourceLanguage,
-                            onChanged: (String? newValue) {
-                              print('$newValue');
-                              setState(() {
-                                _selectedSourceLanguage = newValue!;
-                              });
-                            },
-                            items: data
-                                .map<DropdownMenuItem<String>>((dynamic value) {
-                              return DropdownMenuItem<String>(
-                                value: value['code'].toString(),
-                                child: Text(value['language'].toString()),
-                              );
-                            }).toList(),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Card(
+                elevation: 3,
+                child: Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _inputController,
+                        decoration: InputDecoration(
+                          labelText: 'Enter Text',
+                          suffixIcon: IconButton(
+                            icon: Icon(Icons.volume_up),
+                            onPressed: () => _speakText(_inputController.text),
                           ),
+                          suffix: _sourceLanguage.isNotEmpty
+                              ? Text('Language: $_sourceLanguage')
+                              : null,
                         ),
-                      ],
-                    ),
-                  ],
+                        onChanged: (text) {
+                          _autoDetectLanguage();
+                        },
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('$_sourceLanguage'),
+                          Flexible(
+                            child: DropdownButton<String>(
+                              value: _selectedSourceLanguage,
+                              onChanged: (String? newValue) {
+                                print('$newValue');
+                                setState(() {
+                                  _selectedSourceLanguage = newValue!;
+                                });
+                              },
+                              items: data.map<DropdownMenuItem<String>>(
+                                  (dynamic value) {
+                                return DropdownMenuItem<String>(
+                                  value: value['code'].toString(),
+                                  child: Text(value['language'].toString()),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 16),
-            Card(
-              elevation: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _outputController,
-                      decoration: InputDecoration(
-                        labelText: 'Translated Text',
-                        suffixIcon: IconButton(
-                          icon: Icon(Icons.volume_up),
-                          onPressed: () => _speakText(_outputController.text),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('$_selectedTargetLanguage'),
-                        Flexible(
-                          child: DropdownButton<String>(
-                            value: _selectedTargetLanguage,
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                _selectedTargetLanguage = newValue!;
-                              });
-                            },
-                            items: data
-                                .map<DropdownMenuItem<String>>((dynamic value) {
-                              return DropdownMenuItem<String>(
-                                value: value['code'].toString(),
-                                child: Text(value['language'].toString()),
-                              );
-                            }).toList(),
+              SizedBox(height: 16),
+              Card(
+                elevation: 3,
+                child: Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _outputController,
+                        decoration: InputDecoration(
+                          labelText: 'Translated Text',
+                          suffixIcon: IconButton(
+                            icon: Icon(Icons.volume_up),
+                            onPressed: () => _speakText(_outputController.text),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('$_selectedTargetLanguage'),
+                          Flexible(
+                            child: DropdownButton<String>(
+                              value: _selectedTargetLanguage,
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedTargetLanguage = newValue!;
+                                });
+                              },
+                              items: data.map<DropdownMenuItem<String>>(
+                                  (dynamic value) {
+                                return DropdownMenuItem<String>(
+                                  value: value['code'].toString(),
+                                  child: Text(value['language'].toString()),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () async {
-                await _translateText();
-              },
-              child: Text('Translate'),
-            ),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    _startListening(_inputController);
-                  },
-                  child: Icon(Icons.mic),
-                ),
-              ],
-            ),
-          ],
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () async {
+                  await _translateText();
+                },
+                child: Text('Translate'),
+              ),
+              SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Navigate to the History screen with translationHistory
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -341,6 +372,66 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
+  Future<void> _confirmDelete() async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Delete'),
+          content: Text('Are you sure you want to delete the entire history?'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Delete'),
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close the dialog
+                await _deleteHistory(); // Call the method to delete history
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteHistory() async {
+    try {
+      setState(() {
+        _deleting = true; // Show loader
+      });
+
+      // Simulate asynchronous operation (replace with actual logic)
+      await widget.onClearHistory();
+
+      // Navigate back to trigger page reload
+      Navigator.of(context).pop();
+
+      // Simulate screen refresh (replace with actual logic)
+      await Future.delayed(Duration(seconds: 2));
+
+      // Navigate back to the history page
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => HistoryScreen(
+            translationHistory: widget.translationHistory,
+            data: widget.data,
+            onClearHistory: widget.onClearHistory,
+          ),
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _deleting = false; // Hide loader in case of an error
+      });
+      print('Error clearing history: $e');
+    }
+  }
+
   String getLanguageName(String languageCode) {
     var language = widget.data.firstWhere(
       (element) => element['code'] == languageCode,
@@ -360,16 +451,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           IconButton(
             icon: Icon(Icons.delete),
             onPressed: () async {
-              setState(() {
-                _deleting = true;
-              });
-
-              await widget
-                  .onClearHistory(); // Wait for the operation to complete
-
-              setState(() {
-                _deleting = false;
-              });
+              await _confirmDelete();
             },
           ),
         ],
@@ -385,37 +467,111 @@ class _HistoryScreenState extends State<HistoryScreen> {
               : ListView.builder(
                   itemCount: widget.translationHistory.length,
                   itemBuilder: (context, index) {
-                    List<String> translationInfo =
-                        widget.translationHistory[index].split('_');
-                    String sourceLanguageCode = translationInfo[0];
-                    String targetLanguageCode =
-                        translationInfo[0]; // Fix index here
-                    String translationText =
-                        translationInfo[0]; // Fix index here
+                    String translationText = widget.translationHistory[index];
 
+                    // Extracting information from the concatenated string
+                    String sourceLanguageCode = translationText[0];
+                    String targetLanguageCode = translationText[0];
+                    String translatedText = translationText.substring(0);
+
+                    // Get language names from the language codes
                     String sourceLanguageName =
                         getLanguageName(sourceLanguageCode);
                     String targetLanguageName =
                         getLanguageName(targetLanguageCode);
 
-                    return Card(
-                      elevation: 3,
-                      margin: EdgeInsets.all(8.0),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('From: $sourceLanguageName'),
-                            Text('To: $targetLanguageName'),
-                            Text('Translation: $translationText'),
-                            // Add more information as needed
-                          ],
+                    // Unique key for each translation card
+                    Key cardKey = Key(widget.translationHistory[index]);
+
+                    return Dismissible(
+                      key: cardKey,
+                      direction: DismissDirection.startToEnd,
+                      onDismissed: (direction) async {
+                        // Show confirmation dialog
+                        bool confirmDelete = await _confirmDeleteDialog();
+
+                        if (confirmDelete) {
+                          // Perform deletion logic here if needed
+                          // Remove the dismissed translation from the list
+                          setState(() {
+                            widget.translationHistory.removeAt(index);
+                          });
+
+                          // Show a snackbar indicating the translation was deleted
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Translation deleted'),
+                            ),
+                          );
+                        } else {
+                          // If canceled, refresh the page
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => HistoryScreen(
+                                translationHistory: widget.translationHistory,
+                                data: widget.data,
+                                onClearHistory: widget.onClearHistory,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      background: Container(
+                        color: Colors.red,
+                        padding: EdgeInsets.all(16.0),
+                        alignment: Alignment.centerLeft,
+                        child: Icon(
+                          Icons.delete,
+                          color: Colors.white,
+                        ),
+                      ),
+                      child: Card(
+                        elevation: 3,
+                        margin: EdgeInsets.all(8.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('From: $sourceLanguageName'),
+                              Text('To: $targetLanguageName'),
+                              Text('Translation: $translatedText'),
+                              // Add more information as needed
+                            ],
+                          ),
                         ),
                       ),
                     );
                   },
                 ),
     );
+  }
+
+  Future<bool> _confirmDeleteDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Confirm Delete'),
+              content:
+                  Text('Are you sure you want to delete this translation?'),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(context).pop(false); // Close the dialog
+                  },
+                ),
+                TextButton(
+                  child: Text('Delete'),
+                  onPressed: () {
+                    Navigator.of(context).pop(true); // Close the dialog
+                  },
+                ),
+              ],
+            );
+          },
+        ) ??
+        false; // Default to false if the dialog is dismissed
   }
 }
